@@ -1,4 +1,4 @@
-# Архитектура movies_bot
+# Архитектура ASfilmbot
 
 ## Стек
 
@@ -9,7 +9,7 @@
 | HTTP | httpx (async) |
 | БД | SQLite3 (stdlib) |
 | Внешние API | TMDB, OpenRouter (DeepSeek) |
-| Запуск | `NO_PROXY="*" python movies_bot.py` |
+| Запуск | `NO_PROXY="*" python asfilmbot.py` |
 
 ---
 
