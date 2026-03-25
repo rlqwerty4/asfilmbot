@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>CineBot</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#0f0f1a);--bg2:var(--tg-theme-secondary-bg-color,#1a1a2e);--text:var(--tg-theme-text-color,#f0f0f0);--hint:var(--tg-theme-hint-color,#888);--link:var(--tg-theme-link-color,#6c8fff);--btn:var(--tg-theme-button-color,#6c8fff);--btn-txt:var(--tg-theme-button-text-color,#fff);--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+.nav{position:sticky;top:0;z-index:100;background:var(--bg2);display:flex;border-bottom:1px solid rgba(255,255,255,.07)}
+.nav-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--hint);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s}
+.nav-btn .icon{font-size:22px}
+.nav-btn.active{color:var(--btn)}
+.sec{display:none;padding:12px;padding-bottom:20px}
+.sec.active{display:block}
+.sec-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.subtabs{display:flex;gap:6px;margin-bottom:12px}
+.subtab{flex:1;padding:8px;background:var(--bg2);border:none;border-radius:10px;color:var(--hint);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.subtab.active{background:var(--btn);color:var(--btn-txt)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.card{background:var(--bg2);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .15s;position:relative}
+.card:active{transform:scale(.96)}
+.card-img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#1a1a2e}
+.card-no-img{width:100%;aspect-ratio:2/3;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:44px}
+.card-info{padding:8px}
+.card-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{font-size:11px;color:var(--hint);display:flex;justify-content:space-between;margin-top:3px}
+.card-star{color:#ffd700}
+.card-badge{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.65);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-inp{flex:1;padding:10px 14px;background:var(--bg2);border:none;border-radius:10px;color:var(--text);font-size:15px;outline:none}
+.search-inp::placeholder{color:var(--hint)}
+.search-go{padding:10px 16px;background:var(--btn);color:var(--btn-txt);border:none;border-radius:10px;font-size:18px;cursor:pointer}
+.witem{background:var(--bg2);border-radius:10px;padding:10px;margin-bottom:8px;display:flex;gap:10px;align-items:center;cursor:pointer}
+.witem:active{opacity:.8}
+.witem-img{width:46px;height:68px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.witem-no-img{width:46px;height:68px;border-radius:6px;background:linear-gradient(135deg,#1a1a2e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.witem-info{flex:1;overflow:hidden;min-width:0}
+.witem-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.witem-meta{font-size:12px;color:var(--hint);margin-top:3px}
+.witem-rating{display:inline-block;background:var(--btn);color:var(--btn-txt);border-radius:6px;padding:2px 7px;font-size:12px;font-weight:700;margin-right:4px}
+.witem-del{background:none;border:none;color:var(--hint);font-size:20px;cursor:pointer;flex-shrink:0;padding:4px 8px;border-radius:8px;line-height:1}
+.witem-del:active{background:rgba(255,255,255,.1)}
+.overlay{display:none;position:fixed;inset:0;background:var(--bg);overflow-y:auto;z-index:200}
+.overlay.open{display:block}
+.ov-back{position:sticky;top:0;z-index:10;padding:12px 16px;background:var(--bg);border:none;color:var(--link);font-size:15px;cursor:pointer;display:flex;align-items:center;gap:6px;width:100%;border-bottom:1px solid rgba(255,255,255,.07)}
+.ov-poster{width:100%;max-height:56vw;object-fit:cover;display:block}
+.ov-body{padding:16px}
+.ov-title{font-size:20px;font-weight:700;line-height:1.2}
+.ov-meta{color:var(--hint);font-size:13px;margin-top:5px}
+.ov-tmdb{font-size:22px;margin:8px 0;color:#ffd700}
+.ov-overview{font-size:14px;line-height:1.55;color:var(--hint);margin-top:8px}
+.ov-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btn{flex:1;min-width:120px;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
+.btn-blue{background:var(--btn);color:var(--btn-txt)}
+.btn-green{background:#27ae60;color:#fff}
+.btn-wish{background:#8e44ad;color:#fff}
+.btn-wish-on{background:#2d1b3d;color:#c39bd3;border:1px solid #8e44ad}
+.rate-wrap{margin-top:14px;display:none}
+.rate-wrap.open{display:block}
+.rate-label{font-size:13px;color:var(--hint);margin-bottom:8px}
+.rate-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rate-btn{padding:9px;background:var(--bg2);border:none;border-radius:8px;color:var(--text);font-size:15px;font-weight:600;cursor:pointer}
+.rate-btn.on{background:var(--btn);color:var(--btn-txt)}
+.rate-ok{text-align:center;padding:12px;font-size:22px;color:#27ae60;font-weight:600}
+.loader{text-align:center;padding:40px;color:var(--hint);font-size:28px}
+.empty{text-align:center;padding:40px;color:var(--hint)}
+.empty-icon{font-size:52px;margin-bottom:10px}
+.empty p{font-size:14px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showTab(this,'home')"><span class="icon">🔥</span><span>В тренде</span></button>
+  <button class="nav-btn" onclick="showTab(this,'search')"><span class="icon">🔍</span><span>Поиск</span></button>
+  <button class="nav-btn" onclick="showTab(this,'list')"><span class="icon">📋</span><span>Списки</span></button>
+</nav>
+
+<div id="home" class="sec active">
+  <div class="sec-title">🔥 В тренде сейчас</div>
+  <div class="grid" id="trending-grid"><div class="loader">⏳</div></div>
+</div>
+
+<div id="search" class="sec">
+  <div class="search-row">
+    <input id="search-inp" class="search-inp" type="text" placeholder="Название фильма..." onkeydown="if(event.key==='Enter')doSearch()">
+    <button class="search-go" onclick="doSearch()">→</button>
+  </div>
+  <div class="grid" id="search-grid">
+    <div class="loader" style="grid-column:1/-1">🔍 Введи название…</div>
+  </div>
+</div>
+
+<div id="list" class="sec">
+  <div class="subtabs">
+    <button class="subtab active" onclick="showSubtab(this,'watched-tab')">✅ Просмотренные</button>
+    <button class="subtab" onclick="showSubtab(this,'wish-tab')">📌 Хочу посмотреть</button>
+  </div>
+  <div id="watched-tab"><div class="loader">⏳</div></div>
+  <div id="wish-tab" style="display:none"><div class="loader">⏳</div></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <button class="ov-back" onclick="closeDetail()">← Назад</button>
+  <img id="ov-poster" class="ov-poster" src="" alt="" style="display:none">
+  <div class="ov-body">
+    <div class="ov-title" id="ov-title"></div>
+    <div class="ov-meta" id="ov-meta"></div>
+    <div class="ov-tmdb" id="ov-tmdb"></div>
+    <div class="ov-overview" id="ov-overview"></div>
+    <div class="ov-actions">
+      <button class="btn btn-blue" id="watch-btn" onclick="markWatched()">⬜ Отметить просмотренным</button>
+      <button class="btn btn-wish" id="wish-btn" onclick="toggleWish()">📌 Хочу посмотреть</button>
+    </div>
+    <div class="rate-wrap" id="rate-wrap">
+      <div class="rate-label">Оцени фильм (1–10):</div>
+      <div class="rate-grid" id="rate-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+var TMDB_KEY  = '9d1cbb04591d30eb42ceb762815a24a8';
+var TMDB_BASE = 'https://api.themoviedb.org/3';
+var TMDB_IMG  = 'https://image.tmdb.org/t/p/';
+var userId    = (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || 0;
+if (!userId) {
+  var _p = new URLSearchParams(window.location.search);
+  userId = parseInt(_p.get('user_id')) || 0;
+}
+
+var cache       = {};
+var watchedIds  = {};
+var userRatings = {};
+var wishIds     = {};
+var currentMid  = null;
+
+/* ─── helpers ──────────────────────────────────────────── */
+function tmdbFetch(path, params) {
+  var p = new URLSearchParams(Object.assign({api_key: TMDB_KEY, language: 'ru-RU'}, params || {}));
+  return fetch(TMDB_BASE + path + '?' + p).then(function(r){ return r.json(); }).catch(function(){ return {}; });
+}
+
+function apiGet(path) {
+  return fetch(path).then(function(r){ return r.json(); }).catch(function(){ return null; });
+}
+
+function apiPost(path, data) {
+  return fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+}
+
+function imgUrl(path, size) {
+  return path ? (TMDB_IMG + (size || 'w342') + path) : null;
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function storeMovie(m) { if (m && m.id) cache[m.id] = m; }
+
+/* ─── user data ────────────────────────────────────────── */
+function loadUserData() {
+  if (!userId) return Promise.resolve();
+  return Promise.all([
+    apiGet('/api/watched?user_id=' + userId + '&per_page=300'),
+    apiGet('/api/wishlist?user_id=' + userId)
+  ]).then(function(res) {
+    var wd = res[0], wl = res[1];
+    if (wd && wd.items && Array.isArray(wd.items)) {
+      wd.items.forEach(function(m) {
+        watchedIds[m.id] = true;
+        if (m.rating) userRatings[m.id] = m.rating;
+      });
+    }
+    if (wl && wl.items && Array.isArray(wl.items)) {
+      wl.items.forEach(function(m) { wishIds[m.id] = true; });
+    }
+  }).catch(function(e) { console.error('loadUserData', e); });
+}
+
+/* ─── grid cards ───────────────────────────────────────── */
+function cardHtml(m) {
+  var p = imgUrl(m.poster_path, 'w342');
+  var year = (m.release_date || '').slice(0, 4);
+  var rat = (m.vote_average || 0).toFixed(1);
+  var badge = watchedIds[m.id] ? '✅' : wishIds[m.id] ? '📌' : '';
+  var imgTag = p
+    ? '<img class="card-img" src="' + p + '" loading="lazy" onerror="this.className=\'card-no-img\';this.textContent=\'🎬\'">'
+    : '<div class="card-no-img">🎬</div>';
+  return '<div class="card" data-id="' + m.id + '">' +
+    imgTag +
+    '<div class="card-badge">' + badge + '</div>' +
+    '<div class="card-info">' +
+      '<div class="card-title">' + esc(m.title) + '</div>' +
+      '<div class="card-meta"><span>' + year + '</span><span class="card-star">⭐' + rat + '</span></div>' +
+    '</div></div>';
+}
+
+function renderGrid(containerId, movies) {
+  var el = document.getElementById(containerId);
+  if (!movies.length) {
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">😕</div><p>Ничего не найдено</p></div>';
+    return;
+  }
+  movies.forEach(storeMovie);
+  el.innerHTML = movies.map(cardHtml).join('');
+  el.onclick = function(e) {
+    var card = e.target.closest('.card');
+    if (card) openDetail(Number(card.getAttribute('data-id')));
+  };
+}
+
+/* ─── tabs ─────────────────────────────────────────────── */
+function showTab(btn, tab) {
+  document.querySelectorAll('.sec').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById(tab).classList.add('active');
+  btn.classList.add('active');
+  if (tab === 'list') loadLists();
+}
+
+function showSubtab(btn, tabId) {
+  document.querySelectorAll('.subtab').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('watched-tab').style.display = tabId === 'watched-tab' ? '' : 'none';
+  document.getElementById('wish-tab').style.display    = tabId === 'wish-tab'    ? '' : 'none';
+}
+
+/* ─── trending ─────────────────────────────────────────── */
+function loadTrending() {
+  tmdbFetch('/trending/movie/week').then(function(d) {
+    renderGrid('trending-grid', (d.results || []).slice(0, 20));
+  });
+}
+
+/* ─── search ───────────────────────────────────────────── */
+function doSearch() {
+  var q = document.getElementById('search-inp').value.trim();
+  if (!q) return;
+  document.getElementById('search-grid').innerHTML = '<div class="loader" style="grid-column:1/-1">🔍 Ищу…</div>';
+  tmdbFetch('/search/movie', {query: q}).then(function(d) {
+    renderGrid('search-grid', (d.results || []).slice(0, 20));
+  });
+}
+
+/* ─── lists ────────────────────────────────────────────── */
+function loadLists() {
+  loadWatched();
+  loadWishlist();
+}
+
+function loadWatched() {
+  var el = document.getElementById('watched-tab');
+  if (!userId) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Открой через Telegram</p></div>'; return; }
+  el.innerHTML = '<div class="loader">⏳</div>';
+  apiGet('/api/watched?user_id=' + userId + '&per_page=200').then(function(d) {
+    if (!d) { el.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Нет связи с сервером</p></div>'; return; }
+    if (!d.items || !d.items.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><p>Список пуст<br>Отмечай фильмы!</p></div>'; return; }
+    d.items.forEach(function(m){ storeMovie({id: m.id, title: m.title, poster_path: m.poster_path}); });
+    el.innerHTML = d.items.map(watchedItemHtml).join('');
+    el.onclick = function(e) {
+      var item = e.target.closest('.witem[data-id]');
+      if (item) openDetail(Number(item.getAttribute('data-id')));
+    };
+  });
+}
+
+function watchedItemHtml(m) {
+  var p = m.poster_path
+    ? '<img class="witem-img" src="' + TMDB_IMG + 'w92' + m.poster_path + '" onerror="this.className=\'witem-no-img\';this.textContent=\'🎬\'">'
+    : '<div class="witem-no-img">🎬</div>';
+  var stars = m.rating
+    ? '<span class="witem-rating">' + m.rating + '/10</span>' + '⭐'.repeat(Math.floor(m.rating / 2)) + (m.rating % 2 ? '½' : '')
+    : '<span style="color:var(--hint)">без оценки</span>';
+  return '<div class="witem" data-id="' + m.id + '">' + p +
+    '<div class="witem-info"><div class="witem-title">' + esc(m.title) + '</div>' +
+    '<div class="witem-meta">' + stars + '</div>' +
+    '<div class="witem-meta" style="margin-top:2px">' + (m.date || '') + '</div></div></div>';
+}
+
+function loadWishlist() {
+  var el = document.getElementById('wish-tab');
+  if (!userId) { el.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><p>Открой через Telegram</p></div>'; return; }
+  el.innerHTML = '<div class="loader">⏳</div>';
+  apiGet('/api/wishlist?user_id=' + userId).then(function(d) {
+    if (!d) { el.innerHTML = '<div class="empty"><div class="empty-icon">❌</div><p>Нет связи с сервером</p></div>'; return; }
+    if (!d.items || !d.items.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📌</div><p>Список пуст<br>Нажми «📌 Хочу посмотреть»<br>в карточке фильма!</p></div>'; return; }
+    d.items.forEach(function(m){ storeMovie({id: m.id, title: m.title, poster_path: m.poster_path}); });
+    el.innerHTML = d.items.map(wishItemHtml).join('');
+    el.onclick = function(e) {
+      if (e.target.classList.contains('witem-del')) return;
+      var item = e.target.closest('.witem[data-id]');
+      if (item) openDetail(Number(item.getAttribute('data-id')));
+    };
+  });
+}
+
+function wishItemHtml(m) {
+  var p = m.poster_path
+    ? '<img class="witem-img" src="' + TMDB_IMG + 'w92' + m.poster_path + '" onerror="this.className=\'witem-no-img\';this.textContent=\'🎬\'">'
+    : '<div class="witem-no-img">🎬</div>';
+  return '<div class="witem" data-id="' + m.id + '" id="wish-item-' + m.id + '">' + p +
+    '<div class="witem-info"><div class="witem-title">' + esc(m.title) + '</div>' +
+    '<div class="witem-meta">' + (m.date || '') + '</div></div>' +
+    '<button class="witem-del" onclick="removeWish(event,' + m.id + ')">✕</button></div>';
+}
+
+function removeWish(e, movieId) {
+  e.stopPropagation();
+  apiGet('/api/wishlist/remove?user_id=' + userId + '&movie_id=' + movieId);
+  delete wishIds[movieId];
+  var el = document.getElementById('wish-item-' + movieId);
+  if (el) el.remove();
+  if (!document.querySelector('#wish-tab .witem')) {
+    document.getElementById('wish-tab').innerHTML = '<div class="empty"><div class="empty-icon">📌</div><p>Список пуст</p></div>';
+  }
+}
+
+/* ─── detail overlay ───────────────────────────────────── */
+function openDetail(id) {
+  var m = cache[id];
+  if (m && m.genres) {
+    currentMid = id;
+    showOverlay(m);
+    return;
+  }
+  tmdbFetch('/movie/' + id).then(function(d) {
+    if (d && d.id) { storeMovie(d); m = d; }
+    if (!m) return;
+    currentMid = id;
+    showOverlay(m);
+  });
+}
+
+function showOverlay(m) {
+  var p = imgUrl(m.poster_path, 'w500');
+  var poster = document.getElementById('ov-poster');
+  if (p) { poster.src = p; poster.style.display = 'block'; poster.onerror = function(){ poster.style.display = 'none'; }; }
+  else { poster.style.display = 'none'; }
+
+  document.getElementById('ov-title').textContent = m.title || '?';
+  var year = (m.release_date || '').slice(0,4);
+  var genres = (m.genres || []).map(function(g){return g.name;}).slice(0,3).join(', ');
+  var runtime = m.runtime ? (m.runtime + ' мин') : '';
+  document.getElementById('ov-meta').textContent = [year, genres, runtime].filter(Boolean).join(' · ');
+  document.getElementById('ov-tmdb').textContent = '⭐ ' + (m.vote_average || 0).toFixed(1) + ' / 10';
+  document.getElementById('ov-overview').textContent = m.overview || '';
+
+  var watched = !!watchedIds[m.id];
+  var watchBtn = document.getElementById('watch-btn');
+
+  // Всегда восстанавливаем rate-wrap в исходное состояние
+  var rateWrap = document.getElementById('rate-wrap');
+  rateWrap.innerHTML = '<div class="rate-label">Оцени фильм (1–10):</div><div class="rate-grid" id="rate-grid"></div>';
+
+  if (watched) {
+    watchBtn.textContent = '✅ Просмотрено';
+    watchBtn.className = 'btn btn-green';
+    rateWrap.classList.add('open');
+    renderRateGrid(m.id);
+  } else {
+    watchBtn.textContent = '⬜ Отметить просмотренным';
+    watchBtn.className = 'btn btn-blue';
+    rateWrap.classList.remove('open');
+  }
+
+  var inWish = !!wishIds[m.id];
+  var wishBtn = document.getElementById('wish-btn');
+  wishBtn.textContent = inWish ? '📌 В списке желаний' : '📌 Хочу посмотреть';
+  wishBtn.className = inWish ? 'btn btn-wish-on' : 'btn btn-wish';
+  wishBtn.style.display = watched ? 'none' : '';
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('overlay').scrollTop = 0;
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  currentMid = null;
+}
+
+function renderRateGrid(mid) {
+  var cur = userRatings[mid] || 0;
+  var grid = document.getElementById('rate-grid');
+  if (!grid) return;
+  var html = '';
+  for (var n = 1; n <= 10; n++) {
+    html += '<button class="rate-btn' + (cur === n ? ' on' : '') + '" onclick="rateMovie(' + mid + ',' + n + ')">' + n + '</button>';
+  }
+  grid.innerHTML = html;
+}
+
+/* ─── actions ──────────────────────────────────────────── */
+function markWatched() {
+  var m = cache[currentMid];
+  if (!m || watchedIds[m.id]) return;
+  var genres = (m.genres || []).map(function(g){ return {id: g.id, name: g.name}; });
+
+  apiPost('/api/mark_watched', {
+    user_id: userId, movie_id: m.id,
+    title: m.title, genres: genres, poster_path: m.poster_path || ''
+  }).then(function(res) {
+    if (!res || !res.ok) { alert('Ошибка сохранения'); return; }
+
+    watchedIds[m.id] = true;
+    delete wishIds[m.id];
+    document.getElementById('watch-btn').textContent = '✅ Просмотрено';
+    document.getElementById('watch-btn').className = 'btn btn-green';
+    document.getElementById('wish-btn').style.display = 'none';
+    document.getElementById('rate-wrap').classList.add('open');
+    renderRateGrid(m.id);
+    try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
+  });
+}
+
+function toggleWish() {
+  var m = cache[currentMid];
+  if (!m) return;
+  var inWish = !!wishIds[m.id];
+  var wishBtn = document.getElementById('wish-btn');
+
+  if (inWish) {
+    apiGet('/api/wishlist/remove?user_id=' + userId + '&movie_id=' + m.id);
+    delete wishIds[m.id];
+    wishBtn.textContent = '📌 Хочу посмотреть';
+    wishBtn.className = 'btn btn-wish';
+  } else {
+    apiGet('/api/wishlist/add?user_id=' + userId + '&movie_id=' + m.id + '&title=' + encodeURIComponent(m.title || '') + '&poster_path=' + encodeURIComponent(m.poster_path || ''));
+    wishIds[m.id] = true;
+    wishBtn.textContent = '📌 В списке желаний';
+    wishBtn.className = 'btn btn-wish-on';
+  }
+  try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
+}
+
+function rateMovie(mid, score) {
+  userRatings[mid] = score;
+  try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
+
+  apiPost('/api/rate', {user_id: userId, movie_id: mid, rating: score}).then(function() {
+    var rateWrap = document.getElementById('rate-wrap');
+    rateWrap.innerHTML = '<div class="rate-ok">✅ Оценка ' + score + '/10 сохранена!</div>';
+    setTimeout(closeDetail, 1200);
+  });
+}
+
+/* ─── init ─────────────────────────────────────────────── */
+// Тренд грузим сразу, не ждём API бота
+loadTrending();
+// Данные юзера подгружаем параллельно
+loadUserData();
+</script>
+</body>
+</html>
