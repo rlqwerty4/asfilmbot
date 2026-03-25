@@ -22,7 +22,7 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 
-# ─── CONFIG ──────────────────────────────────────────────────────────────────
+# CONFIG
 TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN",   "8455009017:AAFUbv4wRZOPHNCcBm7lZAEaL09GGHDQvUU")
 OPENROUTER_KEY   = os.getenv("OPENROUTER_API_KEY","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")
 TMDB_API_KEY     = "9d1cbb04591d30eb42ceb762815a24a8"
@@ -64,8 +64,7 @@ def build_main_menu(tg_id: int = 0) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
 
-# ─── DATABASE ────────────────────────────────────────────────────────────────
-
+# DATABASE
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
@@ -254,8 +253,7 @@ def db_remove_watched(tg_id: int, movie_id: int):
         conn.commit()
 
 
-# ─── TMDB API ────────────────────────────────────────────────────────────────
-
+# TMDB API
 async def tmdb_get(path: str, params: dict = None) -> dict:
     p = {"api_key": TMDB_API_KEY, "language": "ru-RU"}
     if params:
@@ -305,8 +303,7 @@ async def tmdb_popular_by_genres(genre_ids: list) -> list:
     return sorted(data.get("results", []), key=lambda x: x.get("vote_average", 0), reverse=True)
 
 
-# ─── DEEPSEEK ────────────────────────────────────────────────────────────────
-
+# DEEPSEEK
 async def ai_recommend(watched_movies: list = None, target_movie: str = None) -> list:
     if target_movie:
         prompt = (f"Recommend 5 movies similar to '{target_movie}'. "
@@ -335,8 +332,7 @@ async def ai_recommend(watched_movies: list = None, target_movie: str = None) ->
     return [t for t in titles if t][:5]
 
 
-# ─── HELPERS ─────────────────────────────────────────────────────────────────
-
+# HELPERS
 async def ensure_genres():
     global GENRES_MAP
     if not GENRES_MAP:
@@ -424,8 +420,7 @@ def rating_kb(movie_id: int) -> InlineKeyboardMarkup:
     ])
 
 
-# ─── COMMAND HANDLERS ────────────────────────────────────────────────────────
-
+# COMMAND HANDLERS
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db_upsert_user(update.effective_user.id)
     await update.message.reply_text(
@@ -618,8 +613,7 @@ async def search_page_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _show_search_page(loading, context)
 
 
-# ── Top ──
-
+# Top
 async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📊 *Топ по твоим жанрам:*",
@@ -678,8 +672,7 @@ async def top_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_movie_card(context.bot, q.message.chat_id, m, watched_ids)
 
 
-# ── Recommend ──
-
+# Recommend
 async def cmd_recommend(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tg_id = update.effective_user.id
     db_upsert_user(tg_id)
@@ -705,8 +698,7 @@ async def cmd_recommend(update: Update, context: ContextTypes.DEFAULT_TYPE):
                      rec_titles, "🎯 *Рекомендации для тебя:*", tg_id)
 
 
-# ── Similar ──
-
+# Similar
 async def cmd_find(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["awaiting_find"] = True
     await update.message.reply_text("🔎 Введи название фильма:")
@@ -800,8 +792,7 @@ async def _show_recs(bot, chat_id: int, rec_titles: list, header: str, tg_id: in
             await send_movie_card(bot, chat_id, m, watched_ids)
 
 
-# ─── CALLBACK HANDLERS ───────────────────────────────────────────────────────
-
+# CALLBACK HANDLERS
 async def detail_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Показывает карточку фильма по нажатию ℹ️ в списке."""
     q = update.callback_query
@@ -947,8 +938,7 @@ async def wdel_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await q.edit_message_text(text, parse_mode="Markdown", reply_markup=kb)
 
 
-# ── Web App data ──
-
+# Web App data
 async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tg_id = update.effective_user.id
     db_upsert_user(tg_id)
@@ -987,8 +977,7 @@ async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
 
-# ── Menu text ──
-
+# Menu text
 async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     dispatch = {
@@ -1010,8 +999,7 @@ async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await similar_title_msg(update, context)
 
 
-# ─── API SERVER ───────────────────────────────────────────────────────────────
-
+# API SERVER
 class BotAPIHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=os.path.join(SCRIPT_DIR, "webapp"), **kwargs)
@@ -1128,8 +1116,7 @@ def start_api_server():
     server.serve_forever()
 
 
-# ─── TUNNEL (Cloudflare) ─────────────────────────────────────────────────────
-
+# TUNNEL (Cloudflare)
 async def setup_tunnel() -> str:
     """Download cloudflared if needed, start tunnel, return HTTPS URL."""
     global TUNNEL_PROC, WEB_APP_URL
@@ -1200,8 +1187,7 @@ async def setup_tunnel() -> str:
         return ""
 
 
-# ─── GLOBAL ERROR HANDLER ────────────────────────────────────────────────────
-
+# GLOBAL ERROR HANDLER
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error("Unhandled exception", exc_info=context.error)
 
@@ -1227,8 +1213,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
-# ─── MAIN ────────────────────────────────────────────────────────────────────
-
+# MAIN
 async def post_init(application):
     """Run setup_tunnel inside the bot event loop."""
     await setup_tunnel()
