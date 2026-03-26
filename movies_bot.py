@@ -648,19 +648,18 @@ async def top_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
             movies = all_movies[:3]
     else:
         label = "📆 Топ месяца"
-        month_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-        data = await tmdb_get("/discover/movie", {
-            "sort_by": "popularity.desc",
-            "primary_release_date.gte": month_ago,
-            "vote_count.gte": 10,
-        })
-        all_movies = data.get("results", [])
         if top_genres:
-            gids     = {g["id"] for g in top_genres}
-            filtered = [m for m in all_movies if any(gid in gids for gid in m.get("genre_ids", []))]
-            movies   = (filtered or all_movies)[:3]
-        else:
+            gids = [g["id"] for g in top_genres]
+            all_movies = await tmdb_popular_by_genres(gids)
             movies = all_movies[:3]
+        else:
+            three_months_ago = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+            data = await tmdb_get("/discover/movie", {
+                "sort_by": "popularity.desc",
+                "primary_release_date.gte": three_months_ago,
+                "vote_count.gte": 50,
+            })
+            movies = data.get("results", [])[:3]
 
     cache_movies(movies)
 
