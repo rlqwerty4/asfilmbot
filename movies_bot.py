@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 import httpx
+from dotenv import load_dotenv
+load_dotenv()
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup,
     ReplyKeyboardMarkup, KeyboardButton, WebAppInfo,
@@ -23,9 +25,9 @@ from telegram.ext import (
 from telegram.request import HTTPXRequest
 
 # CONFIG
-TELEGRAM_TOKEN   = os.getenv("TELEGRAM_TOKEN",   "8455009017:AAFUbv4wRZOPHNCcBm7lZAEaL09GGHDQvUU")
-OPENROUTER_KEY   = os.getenv("OPENROUTER_API_KEY","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")
-TMDB_API_KEY     = "9d1cbb04591d30eb42ceb762815a24a8"
+TELEGRAM_TOKEN   = os.environ["TELEGRAM_TOKEN"]
+OPENROUTER_KEY   = os.environ["OPENROUTER_API_KEY"]
+TMDB_API_KEY     = os.environ["TMDB_API_KEY"]
 TMDB_BASE        = "https://api.themoviedb.org/3"
 TMDB_IMG         = "https://image.tmdb.org/t/p/w500"
 DB_PATH          = os.path.join(os.path.dirname(os.path.abspath(__file__)), "asfilmbot.db")
